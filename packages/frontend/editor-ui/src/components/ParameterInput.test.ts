@@ -20,7 +20,8 @@ import { useWorkflowsStore } from '@/stores/workflows.store';
 import { NodeConnectionTypes, type INodeParameterResourceLocator } from 'n8n-workflow';
 import type { IWorkflowDb, WorkflowListResource } from '@/Interface';
 import { mock } from 'vitest-mock-extended';
-import { ExpressionLocalResolveContextSymbol } from '@/constants';
+import { ExpressionLocalResolveContextSymbol, IsInExperimentalNdvSymbol } from '@/constants';
+import { computed } from 'vue';
 
 function getNdvStateMock(): Partial<ReturnType<typeof useNDVStore>> {
 	return {
@@ -33,6 +34,7 @@ function getNdvStateMock(): Partial<ReturnType<typeof useNDVStore>> {
 			type: 'test',
 			typeVersion: 1,
 		},
+		input: { data: { isEmpty: true } },
 		isInputPanelEmpty: false,
 		isOutputPanelEmpty: false,
 		ndvInputDataWithPinnedData: [],
@@ -95,6 +97,18 @@ vi.mock('vue-router', () => {
 
 const renderComponent = createComponentRenderer(ParameterInput, {
 	pinia: createTestingPinia(),
+	global: {
+		provide: {
+			[ExpressionLocalResolveContextSymbol]: computed(() =>
+				createTestExpressionLocalResolveContext({
+					workflow: createTestWorkflowObject({
+						nodes: [createTestNode({ name: 'test-node' })],
+					}),
+					nodeName: 'test-node',
+				}),
+			),
+		},
+	},
 });
 
 const settingsStore = mockedStore(useSettingsStore);
@@ -112,6 +126,7 @@ describe('ParameterInput.vue', () => {
 				type: 'test',
 				typeVersion: 1,
 			},
+			input: { data: { isEmpty: true } },
 			isInputPanelEmpty: false,
 			isOutputPanelEmpty: false,
 			ndvInputDataWithPinnedData: [],
@@ -672,11 +687,20 @@ describe('ParameterInput.vue', () => {
 		const ctx = createTestExpressionLocalResolveContext({
 			workflow,
 			nodeName: 'n0',
-			inputNode: { name: 'n1', runIndex: 0, branchIndex: 0 },
+			inputNode: { nodeName: 'n1', runIndex: 0, outputIndex: 0, itemIndex: 0 },
+		});
+		const renderComponentWithProvide = createComponentRenderer(ParameterInput, {
+			pinia: createTestingPinia(),
+			global: {
+				provide: {
+					[ExpressionLocalResolveContextSymbol]: ctx,
+					[IsInExperimentalNdvSymbol]: true,
+				},
+			},
 		});
 
 		it('should render mapper when the current value is empty', async () => {
-			const rendered = renderComponent({
+			const rendered = renderComponentWithProvide({
 				global: { provide: { [ExpressionLocalResolveContextSymbol]: ctx } },
 				props: {
 					path: 'name',
@@ -689,7 +713,7 @@ describe('ParameterInput.vue', () => {
 		});
 
 		it('should render mapper when editor type is specified in the parameter', async () => {
-			const rendered = renderComponent({
+			const rendered = renderComponentWithProvide({
 				global: { provide: { [ExpressionLocalResolveContextSymbol]: ctx } },
 				props: {
 					path: 'name',
@@ -707,7 +731,7 @@ describe('ParameterInput.vue', () => {
 		});
 
 		it('should render mapper when the current value is an expression', async () => {
-			const rendered = renderComponent({
+			const rendered = renderComponentWithProvide({
 				global: { provide: { [ExpressionLocalResolveContextSymbol]: ctx } },
 				props: {
 					path: 'name',
@@ -720,7 +744,7 @@ describe('ParameterInput.vue', () => {
 		});
 
 		it('should not render mapper if given node property is a node setting', async () => {
-			const rendered = renderComponent({
+			const rendered = renderComponentWithProvide({
 				global: { provide: { [ExpressionLocalResolveContextSymbol]: ctx } },
 				props: {
 					path: 'name',
@@ -733,7 +757,7 @@ describe('ParameterInput.vue', () => {
 		});
 
 		it('should not render mapper if given node property has datetime type', async () => {
-			const rendered = renderComponent({
+			const rendered = renderComponentWithProvide({
 				global: { provide: { [ExpressionLocalResolveContextSymbol]: ctx } },
 				props: {
 					path: 'name',
