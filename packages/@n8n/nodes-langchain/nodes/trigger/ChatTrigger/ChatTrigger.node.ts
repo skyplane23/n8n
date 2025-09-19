@@ -804,6 +804,8 @@ export class ChatTrigger extends Node {
 					}
 				}
 
+				const instanceBaseUrl = ctx.getInstanceBaseUrl();
+
 				const page = createPage({
 					i18n: {
 						en: i18nConfig,
@@ -812,6 +814,7 @@ export class ChatTrigger extends Node {
 					loadPreviousSession,
 					initialMessages: initialMessagesRaw,
 					webhookUrl,
+					instanceBaseUrl,
 					mode,
 					instanceId,
 					authentication,
